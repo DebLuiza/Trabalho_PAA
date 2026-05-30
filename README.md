@@ -1,0 +1,1 @@
+A implementação considera grafos direcionados, conforme especificado pelo problema. A redução transitiva é realizada preservando a atingibilidade entre vértices.
