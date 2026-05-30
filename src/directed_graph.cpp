@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <fstream>
+#include <stack>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 DirectedGraph::DirectedGraph(int numVertices)
     : Graph(numVertices) {}
@@ -52,6 +54,39 @@ DirectedGraph DirectedGraph::fromFile(const std::string& filePath) {
         throw std::runtime_error("Could not open file: " + filePath);
     }
     return fromStream(file);
+}
+
+bool DirectedGraph::isReachable(int source, int target) const {
+    if (!isValidVertex(source) || !isValidVertex(target)) {
+        return false;
+    }
+
+    if (source == target) {
+        return true;
+    }
+
+    std::vector<bool> visited(static_cast<size_t>(vertexCount()), false);
+    std::stack<int> toVisit;
+    toVisit.push(source);
+    visited[static_cast<size_t>(source)] = true;
+
+    while (!toVisit.empty()) {
+        const int current = toVisit.top();
+        toVisit.pop();
+
+        const std::vector<int>& neighbors = adjacentTo(current);
+        for (int neighbor : neighbors) {
+            if (neighbor == target) {
+                return true;
+            }
+            if (!visited[static_cast<size_t>(neighbor)]) {
+                visited[static_cast<size_t>(neighbor)] = true;
+                toVisit.push(neighbor);
+            }
+        }
+    }
+
+    return false;
 }
 
 bool DirectedGraph::addEdge(int from, int to) {

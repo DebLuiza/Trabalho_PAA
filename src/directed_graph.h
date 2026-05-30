@@ -11,6 +11,7 @@ public:
 
     static DirectedGraph fromStream(std::istream& input);
     static DirectedGraph fromFile(const std::string& filePath);
+    bool isReachable(int source, int target) const;
 
     bool addEdge(int from, int to) override;
     bool removeEdge(int from, int to) override;

@@ -96,3 +96,22 @@ Grande:
 ```
 
 Saida esperada: o programa deve mostrar sucesso na leitura e imprimir `Vertices (n)` e `Arestas (m)` conforme a primeira linha do arquivo.
+
+## Evolucao: DFS para atingibilidade
+
+Foi adicionada a funcao `isReachable(source, target)` no `DirectedGraph`, usando DFS, para responder:
+
+`Existe caminho de source ate target?` -> `true` ou `false`.
+
+### Exemplo de compilacao e consulta de atingibilidade (Git Bash)
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo1.txt 0 4
+```
+
+A ultima linha da saida deve ser:
+
+```text
+Existe caminho de 0 ate 4? true
+```
