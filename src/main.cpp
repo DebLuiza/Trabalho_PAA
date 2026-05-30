@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Arquivo lido com sucesso: " << filePath << '\n';
         std::cout << "Vertices (n): " << graph.vertexCount() << '\n';
         std::cout << "Arestas (m): " << graph.edgeCount() << '\n';
+        graph.printAdjacencyList(std::cout);
         return 0;
     } catch (const std::exception& ex) {
         std::cerr << "Erro ao ler grafo: " << ex.what() << '\n';

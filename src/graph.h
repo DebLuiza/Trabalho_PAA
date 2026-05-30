@@ -1,6 +1,7 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+#include <iosfwd>
 #include <vector>
 
 class Graph {
@@ -17,6 +18,7 @@ public:
     virtual bool hasEdge(int from, int to) const = 0;
 
     const std::vector<int>& adjacentTo(int vertex) const;
+    void printAdjacencyList(std::ostream& output) const;
 
 protected:
     bool isValidVertex(int vertex) const;
