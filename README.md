@@ -115,3 +115,44 @@ A ultima linha da saida deve ser:
 ```text
 Existe caminho de 0 ate 4? true
 ```
+
+## Evolucao: DFS ignorando uma aresta
+
+Foi adicionada a funcao `isReachableIgnoringEdge(source, target, ignoreU, ignoreV)`, que executa DFS a partir de `source`, mas ignora a aresta `ignoreU -> ignoreV`.
+
+Regra aplicada durante a DFS:
+
+```text
+se u == ignoreU e v == ignoreV:
+    pula essa aresta
+senao:
+    continua normalmente
+```
+
+Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta `u->v` e redundante:
+
+- remove logicamente `u->v` (via DFS ignorando a aresta)
+- verifica se ainda existe caminho de `u` ate `v`
+- retorna `true` se for redundante, `false` caso contrario
+
+### Novos modos do executavel
+
+```text
+./grafo_app.exe <arquivo_do_grafo>
+./grafo_app.exe <arquivo_do_grafo> <source> <target>
+./grafo_app.exe <arquivo_do_grafo> <source> <target> <ignoreU> <ignoreV>
+```
+
+### Exemplo de teste (Git Bash)
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo1.txt 1 4 1 4
+```
+
+Saida esperada no final:
+
+```text
+Existe caminho de 1 ate 4 ignorando 1->4? true
+Aresta 1->4 redundante? true
+```

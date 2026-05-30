@@ -5,8 +5,8 @@
 #include <string>
 
 int main(int argc, char* argv[]) {
-    if (argc != 2 && argc != 4) {
-        std::cerr << "Uso: " << argv[0] << " <arquivo_do_grafo> [source target]\n";
+    if (argc != 2 && argc != 4 && argc != 6) {
+        std::cerr << "Uso: " << argv[0] << " <arquivo_do_grafo> [source target] [source target ignoreU ignoreV]\n";
         return 1;
     }
 
@@ -25,6 +25,23 @@ int main(int argc, char* argv[]) {
             const bool reachable = graph.isReachable(source, target);
             std::cout << "Existe caminho de " << source << " ate " << target << "? "
                       << (reachable ? "true" : "false") << '\n';
+        } else if (argc == 6) {
+            const int source = std::stoi(argv[2]);
+            const int target = std::stoi(argv[3]);
+            const int ignoreU = std::stoi(argv[4]);
+            const int ignoreV = std::stoi(argv[5]);
+
+            const bool reachableIgnoringEdge =
+                graph.isReachableIgnoringEdge(source, target, ignoreU, ignoreV);
+            std::cout << "Existe caminho de " << source << " ate " << target
+                      << " ignorando " << ignoreU << "->" << ignoreV << "? "
+                      << (reachableIgnoringEdge ? "true" : "false") << '\n';
+
+            if (source == ignoreU && target == ignoreV) {
+                std::cout << "Aresta " << ignoreU << "->" << ignoreV << " redundante? "
+                          << (graph.isEdgeRedundant(ignoreU, ignoreV) ? "true" : "false")
+                          << '\n';
+            }
         }
         return 0;
     } catch (const std::exception& ex) {

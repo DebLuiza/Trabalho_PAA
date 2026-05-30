@@ -89,6 +89,54 @@ bool DirectedGraph::isReachable(int source, int target) const {
     return false;
 }
 
+bool DirectedGraph::isReachableIgnoringEdge(int source, int target, int ignoreU, int ignoreV) const {
+    if (!isValidVertex(source) || !isValidVertex(target)) {
+        return false;
+    }
+    if (!isValidVertex(ignoreU) || !isValidVertex(ignoreV)) {
+        return false;
+    }
+
+    if (source == target) {
+        return true;
+    }
+
+    std::vector<bool> visited(static_cast<size_t>(vertexCount()), false);
+    std::stack<int> toVisit;
+    toVisit.push(source);
+    visited[static_cast<size_t>(source)] = true;
+
+    while (!toVisit.empty()) {
+        const int current = toVisit.top();
+        toVisit.pop();
+
+        const std::vector<int>& neighbors = adjacentTo(current);
+        for (int neighbor : neighbors) {
+            if (current == ignoreU && neighbor == ignoreV) {
+                continue;
+            }
+
+            if (neighbor == target) {
+                return true;
+            }
+
+            if (!visited[static_cast<size_t>(neighbor)]) {
+                visited[static_cast<size_t>(neighbor)] = true;
+                toVisit.push(neighbor);
+            }
+        }
+    }
+
+    return false;
+}
+
+bool DirectedGraph::isEdgeRedundant(int u, int v) const {
+    if (!hasEdge(u, v)) {
+        return false;
+    }
+    return isReachableIgnoringEdge(u, v, u, v);
+}
+
 bool DirectedGraph::addEdge(int from, int to) {
     if (!isValidVertex(from) || !isValidVertex(to)) {
         return false;
