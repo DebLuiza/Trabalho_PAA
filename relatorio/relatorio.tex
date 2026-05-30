@@ -144,6 +144,10 @@ Responsabilidades:
         \item \texttt{removeEdge(from,to)}
         \item \texttt{hasEdge(from,to)}
         \item \texttt{isReachable(source,target)} (DFS para atingibilidade)
+        \item \texttt{isReachableIgnoringEdge(source,target,ignoreU,ignoreV)}
+        \item \texttt{isEdgeRedundant(u,v)}
+        \item \texttt{getEdgeListSnapshot()}
+        \item \texttt{removeRedundantEdgesUsingSnapshot()}
     \end{itemize}
     \item implementar carga de dados:
     \begin{itemize}
@@ -153,13 +157,15 @@ Responsabilidades:
 \end{itemize}
 
 \subsection{Programa principal}
-O \texttt{main} recebe um argumento obrigatorio (caminho do arquivo) e dois argumentos opcionais (\texttt{source} e \texttt{target}) para consulta de atingibilidade. O programa carrega o grafo e imprime:
+O \texttt{main} recebe um argumento obrigatorio (caminho do arquivo) e modos opcionais para consultas e reducao. O programa carrega o grafo e imprime:
 \begin{itemize}
     \item confirmacao de leitura;
     \item numero de vertices;
     \item numero de arestas;
     \item lista de adjacencia.
     \item quando \texttt{source} e \texttt{target} sao informados: resultado booleano da pergunta ``Existe caminho de source ate target?''.
+    \item quando \texttt{source target ignoreU ignoreV} sao informados: atingibilidade ignorando uma aresta especifica.
+    \item quando \texttt{--reduce} e informado: reducao de arestas redundantes com snapshot das arestas originais.
 \end{itemize}
 
 \section{Detalhes de implementacao}
@@ -195,6 +201,24 @@ Fluxo resumido:
     \item retornar \texttt{false} se a busca terminar sem encontrar \texttt{target}.
 \end{enumerate}
 
+\subsection{DFS ignorando aresta e reducao segura}
+Foi implementada a variacao \texttt{isReachableIgnoringEdge(source,target,ignoreU,ignoreV)}. Durante a DFS, ao iterar vizinhos de um vertice \texttt{u}, a aresta \texttt{ignoreU -> ignoreV} e ignorada:
+\begin{verbatim}
+se u == ignoreU e v == ignoreV:
+    pula essa aresta
+senao:
+    continua normalmente
+\end{verbatim}
+
+Com essa base, a funcao \texttt{isEdgeRedundant(u,v)} verifica se a aresta \texttt{u->v} e redundante.
+
+Para evitar inconsistencias ao remover arestas enquanto se percorre a estrutura de adjacencia, foi implementada a estrategia de snapshot:
+\begin{enumerate}
+    \item \texttt{getEdgeListSnapshot()} cria uma copia fixa das arestas originais;
+    \item \texttt{removeRedundantEdgesUsingSnapshot()} itera sobre essa copia;
+    \item cada aresta redundante e removida do grafo atual com seguranca.
+\end{enumerate}
+
 \section{Complexidade}
 Seja $n$ o numero de vertices e $m$ o numero de arestas.
 
@@ -220,6 +244,19 @@ Para \texttt{isReachable(source,target)}, no pior caso todos os vertices e arest
 O(n + m)
 \]
 considerando representacao por lista de adjacencia.
+
+\subsection{Consulta ignorando aresta}
+A funcao \texttt{isReachableIgnoringEdge(source,target,ignoreU,ignoreV)} tem a mesma ordem assintotica da DFS padrao:
+\[
+O(n + m)
+\]
+
+\subsection{Reducao de arestas redundantes}
+Na reducao, cada aresta original pode disparar uma DFS para verificar redundancia. Com $m$ arestas:
+\[
+O(m\cdot(n+m))
+\]
+no pior caso.
 
 \subsection{Leitura do arquivo}
 A leitura processa $m$ arestas. Considerando o custo de verificacao de duplicata em cada insercao, o custo agregado depende da distribuicao de graus de saida. No pior caso extremo, pode chegar a $O(m\cdot n)$. Em cenarios praticos esparsos e com graus moderados, o comportamento e significativamente melhor.
@@ -262,6 +299,29 @@ Saida esperada para o exemplo acima:
 Existe caminho de 0 ate 4? true
 \end{verbatim}
 
+\subsection{Consulta ignorando aresta}
+\begin{lstlisting}[style=cppstyle]
+./grafo_app.exe dados/pequenos/grafo1.txt 1 4 1 4
+\end{lstlisting}
+
+Saida esperada:
+\begin{verbatim}
+Existe caminho de 1 ate 4 ignorando 1->4? true
+Aresta 1->4 redundante? true
+\end{verbatim}
+
+\subsection{Reducao completa com snapshot}
+\begin{lstlisting}[style=cppstyle]
+./grafo_app.exe dados/pequenos/grafo1.txt --reduce
+\end{lstlisting}
+
+Saida esperada:
+\begin{verbatim}
+Arestas redundantes removidas: X
+Grafo apos reducao:
+...
+\end{verbatim}
+
 \subsection{Resultados esperados}
 \begin{itemize}
     \item Pequeno: $n=5$, $m=6$
@@ -296,6 +356,8 @@ Arestas (m): 6
     \item Leitura por arquivo com tratamento de erro explicito;
     \item Compatibilidade com BOM UTF-8;
     \item verificacao de atingibilidade entre vertices com DFS;
+    \item suporte a DFS ignorando aresta para detectar redundancia;
+    \item reducao segura usando snapshot das arestas originais;
     \item Saida de depuracao/utilizacao simples e objetiva.
 \end{itemize}
 
@@ -303,7 +365,7 @@ Arestas (m): 6
 \begin{itemize}
     \item custo linear em grau para buscar/remover/consultar arestas;
     \item sem suporte atual a pesos;
-    \item ja possui DFS para atingibilidade, mas ainda sem BFS/SCC/ordenacao topologica;
+    \item ja possui DFS e reducao por redundancia, mas ainda sem BFS/SCC/ordenacao topologica;
     \item leitura estrita: qualquer inconsistencia interrompe o processamento.
 \end{itemize}
 

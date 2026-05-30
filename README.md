@@ -139,6 +139,7 @@ Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta
 
 ```text
 ./grafo_app.exe <arquivo_do_grafo>
+./grafo_app.exe <arquivo_do_grafo> --reduce
 ./grafo_app.exe <arquivo_do_grafo> <source> <target>
 ./grafo_app.exe <arquivo_do_grafo> <source> <target> <ignoreU> <ignoreV>
 ```
@@ -156,3 +157,26 @@ Saida esperada no final:
 Existe caminho de 1 ate 4 ignorando 1->4? true
 Aresta 1->4 redundante? true
 ```
+
+## Evolucao: reducao com snapshot de arestas
+
+Para evitar problemas de iteracao ao remover arestas durante o processamento, a reducao usa uma copia fixa das arestas originais (snapshot).
+
+Fluxo:
+
+1. captura a lista original de arestas;
+2. testa redundancia em cada aresta da copia;
+3. remove do grafo atual somente as redundantes.
+
+### Teste da reducao completa
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo1.txt --reduce
+```
+
+Saida esperada:
+
+- quantidade de arestas removidas:
+  `Arestas redundantes removidas: X`
+- lista de adjacencia final apos reducao.

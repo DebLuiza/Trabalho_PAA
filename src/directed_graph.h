@@ -3,7 +3,9 @@
 
 #include "graph.h"
 #include <iosfwd>
+#include <utility>
 #include <string>
+#include <vector>
 
 class DirectedGraph : public Graph {
 public:
@@ -14,6 +16,8 @@ public:
     bool isReachable(int source, int target) const;
     bool isReachableIgnoringEdge(int source, int target, int ignoreU, int ignoreV) const;
     bool isEdgeRedundant(int u, int v) const;
+    std::vector<std::pair<int, int>> getEdgeListSnapshot() const;
+    int removeRedundantEdgesUsingSnapshot();
 
     bool addEdge(int from, int to) override;
     bool removeEdge(int from, int to) override;

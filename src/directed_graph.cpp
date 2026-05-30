@@ -137,6 +137,43 @@ bool DirectedGraph::isEdgeRedundant(int u, int v) const {
     return isReachableIgnoringEdge(u, v, u, v);
 }
 
+std::vector<std::pair<int, int>> DirectedGraph::getEdgeListSnapshot() const {
+    std::vector<std::pair<int, int>> edges;
+    edges.reserve(static_cast<size_t>(edgeCount()));
+
+    for (int u = 0; u < vertexCount(); ++u) {
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            edges.emplace_back(u, v);
+        }
+    }
+
+    return edges;
+}
+
+int DirectedGraph::removeRedundantEdgesUsingSnapshot() {
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+    int removedCount = 0;
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+
+        // The graph may have changed after prior removals. Skip if already removed.
+        if (!hasEdge(u, v)) {
+            continue;
+        }
+
+        if (isReachableIgnoringEdge(u, v, u, v)) {
+            if (removeEdge(u, v)) {
+                ++removedCount;
+            }
+        }
+    }
+
+    return removedCount;
+}
+
 bool DirectedGraph::addEdge(int from, int to) {
     if (!isValidVertex(from) || !isValidVertex(to)) {
         return false;

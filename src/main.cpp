@@ -5,8 +5,9 @@
 #include <string>
 
 int main(int argc, char* argv[]) {
-    if (argc != 2 && argc != 4 && argc != 6) {
-        std::cerr << "Uso: " << argv[0] << " <arquivo_do_grafo> [source target] [source target ignoreU ignoreV]\n";
+    if (argc != 2 && argc != 3 && argc != 4 && argc != 6) {
+        std::cerr << "Uso: " << argv[0]
+                  << " <arquivo_do_grafo> [--reduce] [source target] [source target ignoreU ignoreV]\n";
         return 1;
     }
 
@@ -19,7 +20,18 @@ int main(int argc, char* argv[]) {
         std::cout << "Arestas (m): " << graph.edgeCount() << '\n';
         graph.printAdjacencyList(std::cout);
 
-        if (argc == 4) {
+        if (argc == 3) {
+            const std::string option = argv[2];
+            if (option != "--reduce") {
+                std::cerr << "Opcao invalida: " << option << '\n';
+                return 1;
+            }
+
+            const int removed = graph.removeRedundantEdgesUsingSnapshot();
+            std::cout << "Arestas redundantes removidas: " << removed << '\n';
+            std::cout << "Grafo apos reducao:\n";
+            graph.printAdjacencyList(std::cout);
+        } else if (argc == 4) {
             const int source = std::stoi(argv[2]);
             const int target = std::stoi(argv[3]);
             const bool reachable = graph.isReachable(source, target);
