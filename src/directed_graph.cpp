@@ -281,6 +281,53 @@ DirectedGraph DirectedGraph::buildCondensationGraph(
     return condensation;
 }
 
+DirectedGraph DirectedGraph::transitiveReductionDAG() const {
+    DirectedGraph reduced = *this;
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+
+        if (!reduced.hasEdge(u, v)) {
+            continue;
+        }
+
+        if (reduced.isReachableIgnoringEdge(u, v, u, v)) {
+            reduced.removeEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
+DirectedGraph DirectedGraph::optimizedReductionByCondensation() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced = *this;
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        const int componentV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (componentU == componentV) {
+            continue;
+        }
+
+        if (!reducedCondensation.hasEdge(componentU, componentV)) {
+            reduced.removeEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
 // ---------------------------------------------------------------------------
 // Operacoes basicas de grafo direcionado
 // ---------------------------------------------------------------------------

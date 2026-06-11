@@ -141,6 +141,9 @@ Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta
 ./grafo_app.exe <arquivo_do_grafo>
 ./grafo_app.exe <arquivo_do_grafo> --scc
 ./grafo_app.exe <arquivo_do_grafo> --condensation
+./grafo_app.exe <arquivo_do_grafo> --reduce-dag
+./grafo_app.exe <arquivo_do_grafo> --reduce-condensation
+./grafo_app.exe <arquivo_do_grafo> --reduce-optimized
 ./grafo_app.exe <arquivo_do_grafo> --reduce
 ./grafo_app.exe <arquivo_do_grafo> <source> <target>
 ./grafo_app.exe <arquivo_do_grafo> <source> <target> <ignoreU> <ignoreV>
@@ -236,3 +239,63 @@ Para `grafo_scc.txt`, a estrutura esperada do DAG e:
 ```
 
 Na numeracao impressa pelo programa, isso deve aparecer como duas arestas entre componentes consecutivas.
+
+## Evolucao: reducao transitiva no DAG
+
+Foi adicionada a funcao `transitiveReductionDAG()`, que aplica reducao transitiva em um DAG usando a mesma ideia de testar caminhos alternativos ignorando uma aresta.
+
+### Teste da reducao em DAG
+
+O arquivo `dados/pequenos/grafo_dag.txt` contem:
+
+```text
+0 -> 1
+1 -> 2
+0 -> 2
+```
+
+A aresta `0 -> 2` e redundante, pois existe o caminho `0 -> 1 -> 2`.
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_dag.txt --reduce-dag
+```
+
+Saida esperada do DAG reduzido:
+
+```text
+0: 1
+1: 2
+2:
+```
+
+Tambem e possivel reduzir diretamente o DAG de condensacao de um grafo geral:
+
+```bash
+./grafo_app.exe dados/pequenos/grafo_scc.txt --reduce-condensation
+```
+
+## Evolucao: reducao otimizada por condensacao
+
+Foi adicionada a funcao `optimizedReductionByCondensation()`. Ela aplica a reducao transitiva no DAG de condensacao e mapeia o resultado de volta para o grafo original.
+
+Nesta primeira versao conservadora:
+
+- arestas internas a uma SCC sao preservadas;
+- arestas entre SCCs sao removidas quando a aresta correspondente no DAG de condensacao reduzido nao existe mais;
+- se uma aresta entre SCCs permanece necessaria no DAG reduzido, as arestas originais entre essas SCCs sao mantidas.
+
+### Teste da reducao otimizada
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce-optimized
+```
+
+Nesse exemplo, a aresta `2 -> 5` e redundante no nivel da condensacao, pois existe caminho de `2` ate `5` passando pela SCC `{3, 4}`.
+
+No grafo reduzido, a linha do vertice `2` deve deixar de apontar diretamente para `5`:
+
+```text
+2: 0 3
+```

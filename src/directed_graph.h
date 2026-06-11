@@ -29,6 +29,8 @@ public:
     DirectedGraph buildCondensationGraph(
         const std::vector<std::vector<int>>& components
     ) const;
+    DirectedGraph transitiveReductionDAG() const;
+    DirectedGraph optimizedReductionByCondensation() const;
 
     bool addEdge(int from, int to) override;
     bool removeEdge(int from, int to) override;

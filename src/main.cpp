@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]) {
     if (argc != 2 && argc != 3 && argc != 4 && argc != 6) {
         std::cerr << "Uso: " << argv[0]
-                  << " <arquivo_do_grafo> [--scc|--condensation|--reduce] [source target] [source target ignoreU ignoreV]\n";
+                  << " <arquivo_do_grafo> [--scc|--condensation|--reduce-dag|--reduce-condensation|--reduce-optimized|--reduce] [source target] [source target ignoreU ignoreV]\n";
         return 1;
     }
 
@@ -48,6 +48,23 @@ int main(int argc, char* argv[]) {
 
                 std::cout << "Grafo de condensacao:\n";
                 condensation.printAdjacencyList(std::cout);
+            } else if (option == "--reduce-dag") {
+                const DirectedGraph reduced = graph.transitiveReductionDAG();
+                std::cout << "Reducao transitiva do DAG:\n";
+                reduced.printAdjacencyList(std::cout);
+            } else if (option == "--reduce-condensation") {
+                const auto components = graph.stronglyConnectedComponents();
+                const DirectedGraph condensation = graph.buildCondensationGraph(components);
+                const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+                std::cout << "Grafo de condensacao:\n";
+                condensation.printAdjacencyList(std::cout);
+                std::cout << "Reducao transitiva do DAG de condensacao:\n";
+                reducedCondensation.printAdjacencyList(std::cout);
+            } else if (option == "--reduce-optimized") {
+                const DirectedGraph reduced = graph.optimizedReductionByCondensation();
+                std::cout << "Grafo reduzido por condensacao:\n";
+                reduced.printAdjacencyList(std::cout);
             } else if (option == "--reduce") {
                 const int removed = graph.removeRedundantEdgesUsingSnapshot();
                 std::cout << "Arestas redundantes removidas: " << removed << '\n';
