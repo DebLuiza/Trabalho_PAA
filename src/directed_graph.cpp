@@ -1,7 +1,9 @@
 #include "directed_graph.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <functional>
 #include <stack>
 #include <sstream>
 #include <stdexcept>
@@ -55,6 +57,10 @@ DirectedGraph DirectedGraph::fromFile(const std::string& filePath) {
     }
     return fromStream(file);
 }
+
+// ---------------------------------------------------------------------------
+// Algoritmo 1: reducao simples por DFS
+// ---------------------------------------------------------------------------
 
 bool DirectedGraph::isReachable(int source, int target) const {
     if (!isValidVertex(source) || !isValidVertex(target)) {
@@ -173,6 +179,111 @@ int DirectedGraph::removeRedundantEdgesUsingSnapshot() {
 
     return removedCount;
 }
+
+// ---------------------------------------------------------------------------
+// Algoritmo 2: base otimizada por SCCs (Tarjan) e DAG de condensacao
+// ---------------------------------------------------------------------------
+
+std::vector<std::vector<int>> DirectedGraph::stronglyConnectedComponents() const {
+    const int n = vertexCount();
+    int nextIndex = 0;
+    std::vector<int> index(static_cast<size_t>(n), -1);
+    std::vector<int> lowlink(static_cast<size_t>(n), 0);
+    std::vector<bool> onStack(static_cast<size_t>(n), false);
+    std::stack<int> stack;
+    std::vector<std::vector<int>> components;
+
+    std::function<void(int)> dfs = [&](int u) {
+        index[static_cast<size_t>(u)] = nextIndex;
+        lowlink[static_cast<size_t>(u)] = nextIndex;
+        ++nextIndex;
+        stack.push(u);
+        onStack[static_cast<size_t>(u)] = true;
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            if (index[static_cast<size_t>(v)] == -1) {
+                dfs(v);
+                lowlink[static_cast<size_t>(u)] =
+                    std::min(lowlink[static_cast<size_t>(u)], lowlink[static_cast<size_t>(v)]);
+            } else if (onStack[static_cast<size_t>(v)]) {
+                lowlink[static_cast<size_t>(u)] =
+                    std::min(lowlink[static_cast<size_t>(u)], index[static_cast<size_t>(v)]);
+            }
+        }
+
+        if (lowlink[static_cast<size_t>(u)] == index[static_cast<size_t>(u)]) {
+            std::vector<int> component;
+            int v = -1;
+            do {
+                v = stack.top();
+                stack.pop();
+                onStack[static_cast<size_t>(v)] = false;
+                component.push_back(v);
+            } while (v != u);
+
+            std::sort(component.begin(), component.end());
+            components.push_back(component);
+        }
+    };
+
+    for (int vertex = 0; vertex < n; ++vertex) {
+        if (index[static_cast<size_t>(vertex)] == -1) {
+            dfs(vertex);
+        }
+    }
+
+    return components;
+}
+
+std::vector<int> DirectedGraph::componentIndexByVertex(
+    const std::vector<std::vector<int>>& components
+) const {
+    std::vector<int> componentOfVertex(static_cast<size_t>(vertexCount()), -1);
+
+    for (std::size_t componentIndex = 0; componentIndex < components.size(); ++componentIndex) {
+        for (int vertex : components[componentIndex]) {
+            if (!isValidVertex(vertex)) {
+                throw std::invalid_argument("Component contains invalid vertex.");
+            }
+            componentOfVertex[static_cast<size_t>(vertex)] =
+                static_cast<int>(componentIndex);
+        }
+    }
+
+    return componentOfVertex;
+}
+
+DirectedGraph DirectedGraph::buildCondensationGraph(
+    const std::vector<std::vector<int>>& components
+) const {
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    DirectedGraph condensation(static_cast<int>(components.size()));
+
+    for (int u = 0; u < vertexCount(); ++u) {
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        if (componentU == -1) {
+            throw std::invalid_argument("Missing component for vertex.");
+        }
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            const int componentV = componentOfVertex[static_cast<size_t>(v)];
+            if (componentV == -1) {
+                throw std::invalid_argument("Missing component for vertex.");
+            }
+            if (componentU != componentV) {
+                condensation.addEdge(componentU, componentV);
+            }
+        }
+    }
+
+    return condensation;
+}
+
+// ---------------------------------------------------------------------------
+// Operacoes basicas de grafo direcionado
+// ---------------------------------------------------------------------------
 
 bool DirectedGraph::addEdge(int from, int to) {
     if (!isValidVertex(from) || !isValidVertex(to)) {

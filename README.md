@@ -139,6 +139,8 @@ Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta
 
 ```text
 ./grafo_app.exe <arquivo_do_grafo>
+./grafo_app.exe <arquivo_do_grafo> --scc
+./grafo_app.exe <arquivo_do_grafo> --condensation
 ./grafo_app.exe <arquivo_do_grafo> --reduce
 ./grafo_app.exe <arquivo_do_grafo> <source> <target>
 ./grafo_app.exe <arquivo_do_grafo> <source> <target> <ignoreU> <ignoreV>
@@ -157,6 +159,15 @@ Saida esperada no final:
 Existe caminho de 1 ate 4 ignorando 1->4? true
 Aresta 1->4 redundante? true
 ```
+
+## Organizacao das implementacoes
+
+O projeto mantem duas linhas de implementacao para comparacao:
+
+- Algoritmo 1: reducao simples por DFS ignorando uma aresta.
+- Algoritmo 2: base otimizada com Tarjan para SCCs e futura condensacao em DAG.
+
+Mesmo dentro de `DirectedGraph`, o codigo foi separado por blocos nomeados para deixar claro onde termina a abordagem simples e onde comeca a abordagem otimizada.
 
 ## Evolucao: reducao com snapshot de arestas
 
@@ -180,3 +191,48 @@ Saida esperada:
 - quantidade de arestas removidas:
   `Arestas redundantes removidas: X`
 - lista de adjacencia final apos reducao.
+
+## Evolucao: Tarjan para componentes fortemente conexas
+
+Foi adicionada a funcao `stronglyConnectedComponents()`, baseada no algoritmo de Tarjan, para encontrar SCCs do grafo direcionado.
+
+### Teste de SCCs
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_scc.txt --scc
+```
+
+Para esse arquivo, a estrutura esperada das componentes e:
+
+```text
+{0, 1, 2}
+{3, 4}
+{5}
+```
+
+A ordem de impressao das componentes pode variar, mas os grupos de vertices devem ser esses.
+
+## Evolucao: grafo de condensacao
+
+Foi adicionada a construcao do DAG de condensacao:
+
+- cada SCC vira um vertice;
+- arestas internas a mesma SCC sao ignoradas;
+- arestas entre SCCs diferentes viram arestas no DAG;
+- arestas duplicadas entre componentes sao evitadas.
+
+### Teste da condensacao
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_scc.txt --condensation
+```
+
+Para `grafo_scc.txt`, a estrutura esperada do DAG e:
+
+```text
+{0, 1, 2} -> {3, 4} -> {5}
+```
+
+Na numeracao impressa pelo programa, isso deve aparecer como duas arestas entre componentes consecutivas.
