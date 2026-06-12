@@ -281,7 +281,52 @@ DirectedGraph DirectedGraph::buildCondensationGraph(
     return condensation;
 }
 
+bool DirectedGraph::isDAG() const {
+    enum class VisitState {
+        Unvisited,
+        Visiting,
+        Done
+    };
+
+    std::vector<VisitState> state(
+        static_cast<size_t>(vertexCount()),
+        VisitState::Unvisited
+    );
+
+    std::function<bool(int)> hasCycleFrom = [&](int u) {
+        state[static_cast<size_t>(u)] = VisitState::Visiting;
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            const VisitState neighborState = state[static_cast<size_t>(v)];
+            if (neighborState == VisitState::Visiting) {
+                return true;
+            }
+            if (neighborState == VisitState::Unvisited && hasCycleFrom(v)) {
+                return true;
+            }
+        }
+
+        state[static_cast<size_t>(u)] = VisitState::Done;
+        return false;
+    };
+
+    for (int vertex = 0; vertex < vertexCount(); ++vertex) {
+        if (state[static_cast<size_t>(vertex)] == VisitState::Unvisited) {
+            if (hasCycleFrom(vertex)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 DirectedGraph DirectedGraph::transitiveReductionDAG() const {
+    if (!isDAG()) {
+        throw std::invalid_argument("transitiveReductionDAG requires an acyclic graph.");
+    }
+
     DirectedGraph reduced = *this;
     const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
 

@@ -29,6 +29,7 @@ public:
     DirectedGraph buildCondensationGraph(
         const std::vector<std::vector<int>>& components
     ) const;
+    bool isDAG() const;
     DirectedGraph transitiveReductionDAG() const;
     DirectedGraph optimizedReductionByCondensation() const;
     DirectedGraph optimizedReductionWithSccRings() const;

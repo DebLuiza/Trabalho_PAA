@@ -49,6 +49,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "Grafo de condensacao:\n";
                 condensation.printAdjacencyList(std::cout);
             } else if (option == "--reduce-dag") {
+                if (!graph.isDAG()) {
+                    std::cerr << "Erro: --reduce-dag exige que o grafo de entrada seja um DAG.\n";
+                    std::cerr << "Para grafos gerais, use --reduce, --reduce-optimized-conservative "
+                              << "ou --reduce-optimized-rings.\n";
+                    return 1;
+                }
+
                 const DirectedGraph reduced = graph.transitiveReductionDAG();
                 std::cout << "Modo: reducao transitiva assumindo que a entrada ja e um DAG.\n";
                 std::cout << "Reducao transitiva do DAG:\n";

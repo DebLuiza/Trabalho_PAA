@@ -252,6 +252,8 @@ Ele e diferente de `--reduce`:
 - `--reduce-dag`: aplica reducao transitiva assumindo que o grafo carregado ja e um DAG.
 - `--reduce`: baseline geral; testa cada aresta do grafo original com DFS ignorando essa aresta, sem assumir que o grafo e DAG.
 
+O modo `--reduce-dag` valida se a entrada realmente e aciclica. Caso o grafo tenha ciclos, o programa encerra com erro e recomenda usar `--reduce`, `--reduce-optimized-conservative` ou `--reduce-optimized-rings`.
+
 ### Teste da reducao em DAG
 
 O arquivo `dados/pequenos/grafo_dag.txt` contem:
