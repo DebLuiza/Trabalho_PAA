@@ -328,6 +328,45 @@ DirectedGraph DirectedGraph::optimizedReductionByCondensation() const {
     return reduced;
 }
 
+DirectedGraph DirectedGraph::optimizedReductionWithSccRings() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced(vertexCount());
+
+    for (const std::vector<int>& component : components) {
+        if (component.size() <= 1) {
+            continue;
+        }
+
+        for (std::size_t i = 0; i < component.size(); ++i) {
+            const int from = component[i];
+            const int to = component[(i + 1) % component.size()];
+            reduced.addEdge(from, to);
+        }
+    }
+
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        const int componentV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (componentU == componentV) {
+            continue;
+        }
+
+        if (reducedCondensation.hasEdge(componentU, componentV)) {
+            reduced.addEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
 // ---------------------------------------------------------------------------
 // Operacoes basicas de grafo direcionado
 // ---------------------------------------------------------------------------

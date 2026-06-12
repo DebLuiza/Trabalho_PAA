@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]) {
     if (argc != 2 && argc != 3 && argc != 4 && argc != 6) {
         std::cerr << "Uso: " << argv[0]
-                  << " <arquivo_do_grafo> [--scc|--condensation|--reduce-dag|--reduce-condensation|--reduce-optimized|--reduce] [source target] [source target ignoreU ignoreV]\n";
+                  << " <arquivo_do_grafo> [--scc|--condensation|--reduce-dag|--reduce-condensation|--reduce-optimized-conservative|--reduce-optimized-rings|--reduce] [source target] [source target ignoreU ignoreV]\n";
         return 1;
     }
 
@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
                 condensation.printAdjacencyList(std::cout);
             } else if (option == "--reduce-dag") {
                 const DirectedGraph reduced = graph.transitiveReductionDAG();
+                std::cout << "Modo: reducao transitiva assumindo que a entrada ja e um DAG.\n";
                 std::cout << "Reducao transitiva do DAG:\n";
                 reduced.printAdjacencyList(std::cout);
             } else if (option == "--reduce-condensation") {
@@ -61,12 +62,17 @@ int main(int argc, char* argv[]) {
                 condensation.printAdjacencyList(std::cout);
                 std::cout << "Reducao transitiva do DAG de condensacao:\n";
                 reducedCondensation.printAdjacencyList(std::cout);
-            } else if (option == "--reduce-optimized") {
+            } else if (option == "--reduce-optimized-conservative" || option == "--reduce-optimized") {
                 const DirectedGraph reduced = graph.optimizedReductionByCondensation();
-                std::cout << "Grafo reduzido por condensacao:\n";
+                std::cout << "Grafo reduzido por condensacao (conservador):\n";
+                reduced.printAdjacencyList(std::cout);
+            } else if (option == "--reduce-optimized-rings") {
+                const DirectedGraph reduced = graph.optimizedReductionWithSccRings();
+                std::cout << "Grafo reduzido por condensacao com aneis nas SCCs:\n";
                 reduced.printAdjacencyList(std::cout);
             } else if (option == "--reduce") {
                 const int removed = graph.removeRedundantEdgesUsingSnapshot();
+                std::cout << "Modo: baseline geral por DFS ignorando cada aresta do grafo original.\n";
                 std::cout << "Arestas redundantes removidas: " << removed << '\n';
                 std::cout << "Grafo apos reducao:\n";
                 graph.printAdjacencyList(std::cout);

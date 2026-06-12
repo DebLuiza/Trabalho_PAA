@@ -143,7 +143,8 @@ Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta
 ./grafo_app.exe <arquivo_do_grafo> --condensation
 ./grafo_app.exe <arquivo_do_grafo> --reduce-dag
 ./grafo_app.exe <arquivo_do_grafo> --reduce-condensation
-./grafo_app.exe <arquivo_do_grafo> --reduce-optimized
+./grafo_app.exe <arquivo_do_grafo> --reduce-optimized-conservative
+./grafo_app.exe <arquivo_do_grafo> --reduce-optimized-rings
 ./grafo_app.exe <arquivo_do_grafo> --reduce
 ./grafo_app.exe <arquivo_do_grafo> <source> <target>
 ./grafo_app.exe <arquivo_do_grafo> <source> <target> <ignoreU> <ignoreV>
@@ -244,6 +245,13 @@ Na numeracao impressa pelo programa, isso deve aparecer como duas arestas entre 
 
 Foi adicionada a funcao `transitiveReductionDAG()`, que aplica reducao transitiva em um DAG usando a mesma ideia de testar caminhos alternativos ignorando uma aresta.
 
+Esse modo deve ser usado quando o grafo de entrada ja e um DAG, ou seja, quando nao ha ciclos.
+
+Ele e diferente de `--reduce`:
+
+- `--reduce-dag`: aplica reducao transitiva assumindo que o grafo carregado ja e um DAG.
+- `--reduce`: baseline geral; testa cada aresta do grafo original com DFS ignorando essa aresta, sem assumir que o grafo e DAG.
+
 ### Teste da reducao em DAG
 
 O arquivo `dados/pequenos/grafo_dag.txt` contem:
@@ -275,7 +283,15 @@ Tambem e possivel reduzir diretamente o DAG de condensacao de um grafo geral:
 ./grafo_app.exe dados/pequenos/grafo_scc.txt --reduce-condensation
 ```
 
-## Evolucao: reducao otimizada por condensacao
+### Comparacao com o baseline geral
+
+```bash
+./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce
+```
+
+Nesse caso, o programa nao assume que a entrada e DAG. Ele percorre as arestas originais e testa redundancia uma a uma por DFS ignorando a aresta testada.
+
+## Evolucao: reducao otimizada conservadora por condensacao
 
 Foi adicionada a funcao `optimizedReductionByCondensation()`. Ela aplica a reducao transitiva no DAG de condensacao e mapeia o resultado de volta para o grafo original.
 
@@ -289,8 +305,10 @@ Nesta primeira versao conservadora:
 
 ```bash
 g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
-./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce-optimized
+./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce-optimized-conservative
 ```
+
+O modo antigo `--reduce-optimized` tambem e aceito como alias, mas o nome recomendado e `--reduce-optimized-conservative`.
 
 Nesse exemplo, a aresta `2 -> 5` e redundante no nivel da condensacao, pois existe caminho de `2` ate `5` passando pela SCC `{3, 4}`.
 
@@ -298,4 +316,26 @@ No grafo reduzido, a linha do vertice `2` deve deixar de apontar diretamente par
 
 ```text
 2: 0 3
+```
+
+## Evolucao: reducao otimizada com aneis nas SCCs
+
+Foi adicionada a funcao `optimizedReductionWithSccRings()`. Ela aplica a reducao por condensacao e, dentro de cada SCC com mais de um vertice, substitui as arestas internas por um ciclo dirigido simples.
+
+Exemplo para uma SCC `{v1, v2, v3, v4}`:
+
+```text
+v1 -> v2
+v2 -> v3
+v3 -> v4
+v4 -> v1
+```
+
+Essa abordagem preserva a atingibilidade entre os vertices da SCC, pois todos continuam alcancando todos. Importante: essa versao pode adicionar arestas que nao existiam no grafo original, entao ela produz um grafo equivalente em atingibilidade, mas nao necessariamente um subgrafo do grafo original.
+
+### Teste com aneis nas SCCs
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce-optimized-rings
 ```

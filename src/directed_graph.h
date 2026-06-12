@@ -31,6 +31,7 @@ public:
     ) const;
     DirectedGraph transitiveReductionDAG() const;
     DirectedGraph optimizedReductionByCondensation() const;
+    DirectedGraph optimizedReductionWithSccRings() const;
 
     bool addEdge(int from, int to) override;
     bool removeEdge(int from, int to) override;
