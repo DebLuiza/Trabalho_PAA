@@ -1,4 +1,4 @@
-#include "directed_graph.h"
+﻿#include "directed_graph.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -181,7 +181,7 @@ int DirectedGraph::removeRedundantEdgesUsingSnapshot() {
 }
 
 // ---------------------------------------------------------------------------
-// Algoritmo 2.2: base otimizada por SCCs (Tarjan) e DAG de condensacao
+// Algoritmo 2.1: base otimizada por SCCs (Tarjan) e DAG de condensacao
 // ---------------------------------------------------------------------------
 
 std::vector<std::vector<int>> DirectedGraph::stronglyConnectedComponents() const {
@@ -346,7 +346,7 @@ DirectedGraph DirectedGraph::transitiveReductionDAG() const {
             }
         }
 
-        // Passo 2: Continua a DFS para mapear tudo que é alcançável indiretamente
+        // Passo 2: Continua a DFS para mapear tudo que é alcanÃ§Ã¡vel indiretamente
         while (!stack.empty()) {
             int current = stack.top();
             stack.pop();
@@ -359,7 +359,7 @@ DirectedGraph DirectedGraph::transitiveReductionDAG() const {
             }
         }
 
-        // Passo 3: Se um vizinho direto de 'u' foi alcançado indiretamente, a aresta é removida
+        // Passo 3: Se um vizinho direto de 'u' foi alcanÃ§ado indiretamente, a aresta Ã© removida
         for (int v : neighbors) {
             if (indirectReach[static_cast<size_t>(v)]) {
                 reduced.removeEdge(u, v);
@@ -437,10 +437,10 @@ DirectedGraph DirectedGraph::optimizedReductionWithSccRings() const {
 }
 
 // ---------------------------------------------------------------------------
-// Algoritmo 2.1
+// Algoritmo 2.2: busca interna em SCCs usando apenas arestas originais
 // ---------------------------------------------------------------------------
 
-// DFS isolada que não "vaza" para fora do componente strongly-connected
+// DFS isolada que nao sai da componente fortemente conexa.
 bool DirectedGraph::isReachableIgnoringEdgeInSCC(int source, int target, int ignoreU, int ignoreV, const std::vector<int>& compOfVertex) const {
     if (source == target) return true;
 
@@ -456,7 +456,7 @@ bool DirectedGraph::isReachableIgnoringEdgeInSCC(int source, int target, int ign
         toVisit.pop();
 
         for (int neighbor : adjacentTo(current)) {
-            // Regra crucial: Aborta se o vizinho estiver em outro componente (vazamento)
+            // Mantem a busca restrita a componente do vertice de origem.
             if (compOfVertex[static_cast<size_t>(neighbor)] != targetComp) {
                 continue; 
             }
@@ -476,13 +476,12 @@ bool DirectedGraph::isReachableIgnoringEdgeInSCC(int source, int target, int ign
     return false;
 }
 
-// O novo algoritmo que substitui a criação artificial de anéis
+// Variante que reduz tambem arestas internas das SCCs sem criar arestas artificiais.
 DirectedGraph DirectedGraph::optimizedReductionWithInternalSearch() const {
     const std::vector<std::vector<int>> components = stronglyConnectedComponents();
     const std::vector<int> componentOfVertex = componentIndexByVertex(components);
     const DirectedGraph condensation = buildCondensationGraph(components);
     
-    // Reduz as "rodovias intermunicipais" (DAG otimizado que fizemos acima)
     const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
 
     DirectedGraph reduced = *this;
@@ -500,8 +499,8 @@ DirectedGraph DirectedGraph::optimizedReductionWithInternalSearch() const {
                 reduced.removeEdge(u, v);
             }
         } else {
-            // Trata arestas DENTRO da mesma SCC (Heurística MEG)
-            // Usa a DFS blindada que não sai do componente
+            // Trata arestas internas sem permitir que a busca saia da SCC.
+            
             if (reduced.isReachableIgnoringEdgeInSCC(u, v, u, v, componentOfVertex)) {
                 reduced.removeEdge(u, v);
             }
@@ -554,3 +553,4 @@ bool DirectedGraph::hasEdge(int from, int to) const {
     const std::vector<int>& neighbors = adjacencyList_[from];
     return std::find(neighbors.begin(), neighbors.end(), to) != neighbors.end();
 }
+

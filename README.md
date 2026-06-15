@@ -144,6 +144,7 @@ Tambem foi adicionada a funcao `isEdgeRedundant(u, v)`, que responde se a aresta
 ./grafo_app.exe <arquivo_do_grafo> --reduce-dag
 ./grafo_app.exe <arquivo_do_grafo> --reduce-condensation
 ./grafo_app.exe <arquivo_do_grafo> --reduce-optimized-conservative
+./grafo_app.exe <arquivo_do_grafo> --reduce-internal-search
 ./grafo_app.exe <arquivo_do_grafo> --reduce-optimized-rings
 ./grafo_app.exe <arquivo_do_grafo> --reduce
 ./grafo_app.exe <arquivo_do_grafo> <source> <target>
@@ -252,7 +253,7 @@ Ele e diferente de `--reduce`:
 - `--reduce-dag`: aplica reducao transitiva assumindo que o grafo carregado ja e um DAG.
 - `--reduce`: baseline geral; testa cada aresta do grafo original com DFS ignorando essa aresta, sem assumir que o grafo e DAG.
 
-O modo `--reduce-dag` valida se a entrada realmente e aciclica. Caso o grafo tenha ciclos, o programa encerra com erro e recomenda usar `--reduce`, `--reduce-optimized-conservative` ou `--reduce-optimized-rings`.
+O modo `--reduce-dag` valida se a entrada realmente e aciclica. Caso o grafo tenha ciclos, o programa encerra com erro e recomenda usar `--reduce`, `--reduce-optimized-conservative`, `--reduce-internal-search` ou `--reduce-optimized-rings`.
 
 ### Teste da reducao em DAG
 
@@ -340,4 +341,27 @@ Essa abordagem preserva a atingibilidade entre os vertices da SCC, pois todos co
 ```bash
 g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
 ./grafo_app.exe dados/pequenos/grafo_condensation_redundant.txt --reduce-optimized-rings
+```
+
+## Evolucao: reducao com busca interna em SCCs
+
+Foi adicionada a opcao `--reduce-internal-search`, que reduz arestas entre SCCs usando o DAG de condensacao e tambem tenta remover arestas redundantes dentro de cada SCC sem sair da componente.
+
+Diferente da versao com aneis, essa abordagem nao cria arestas artificiais: ela trabalha somente sobre arestas originais.
+
+### Teste da busca interna
+
+O arquivo `dados/pequenos/grafo_scc_internal_redundant.txt` contem uma SCC com a aresta interna redundante `0 -> 2`, pois existe o caminho `0 -> 1 -> 2`.
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/pequenos/grafo_scc_internal_redundant.txt --reduce-internal-search
+```
+
+Saida esperada:
+
+```text
+0: 1
+1: 2
+2: 0
 ```

@@ -21,7 +21,7 @@ public:
     std::vector<std::pair<int, int>> getEdgeListSnapshot() const;
     int removeRedundantEdgesUsingSnapshot();
 
-    // Algoritmo 2.2: base otimizada por SCCs (Tarjan) e DAG de condensacao.
+    // Algoritmo 2.1: base otimizada por SCCs (Tarjan) e DAG de condensacao.
     std::vector<std::vector<int>> stronglyConnectedComponents() const;
     std::vector<int> componentIndexByVertex(
         const std::vector<std::vector<int>>& components
@@ -34,7 +34,7 @@ public:
     DirectedGraph optimizedReductionByCondensation() const;
     DirectedGraph optimizedReductionWithSccRings() const;
 
-    // Algoritmo 2.1: DAG de condensacao
+    // Algoritmo 2.2: busca interna em SCCs usando apenas arestas originais.
     bool isReachableIgnoringEdgeInSCC(int source, int target, int ignoreU, int ignoreV, const std::vector<int>& compOfVertex) const;
     DirectedGraph optimizedReductionWithInternalSearch() const;
 
