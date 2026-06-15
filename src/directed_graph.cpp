@@ -1,7 +1,9 @@
-#include "directed_graph.h"
+﻿#include "directed_graph.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <functional>
 #include <stack>
 #include <sstream>
 #include <stdexcept>
@@ -55,6 +57,10 @@ DirectedGraph DirectedGraph::fromFile(const std::string& filePath) {
     }
     return fromStream(file);
 }
+
+// ---------------------------------------------------------------------------
+// Algoritmo 1: reducao simples por DFS
+// ---------------------------------------------------------------------------
 
 bool DirectedGraph::isReachable(int source, int target) const {
     if (!isValidVertex(source) || !isValidVertex(target)) {
@@ -174,6 +180,340 @@ int DirectedGraph::removeRedundantEdgesUsingSnapshot() {
     return removedCount;
 }
 
+// ---------------------------------------------------------------------------
+// Algoritmo 2.1: base otimizada por SCCs (Tarjan) e DAG de condensacao
+// ---------------------------------------------------------------------------
+
+std::vector<std::vector<int>> DirectedGraph::stronglyConnectedComponents() const {
+    const int n = vertexCount();
+    int nextIndex = 0;
+    std::vector<int> index(static_cast<size_t>(n), -1);
+    std::vector<int> lowlink(static_cast<size_t>(n), 0);
+    std::vector<bool> onStack(static_cast<size_t>(n), false);
+    std::stack<int> stack;
+    std::vector<std::vector<int>> components;
+
+    std::function<void(int)> dfs = [&](int u) {
+        index[static_cast<size_t>(u)] = nextIndex;
+        lowlink[static_cast<size_t>(u)] = nextIndex;
+        ++nextIndex;
+        stack.push(u);
+        onStack[static_cast<size_t>(u)] = true;
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            if (index[static_cast<size_t>(v)] == -1) {
+                dfs(v);
+                lowlink[static_cast<size_t>(u)] =
+                    std::min(lowlink[static_cast<size_t>(u)], lowlink[static_cast<size_t>(v)]);
+            } else if (onStack[static_cast<size_t>(v)]) {
+                lowlink[static_cast<size_t>(u)] =
+                    std::min(lowlink[static_cast<size_t>(u)], index[static_cast<size_t>(v)]);
+            }
+        }
+
+        if (lowlink[static_cast<size_t>(u)] == index[static_cast<size_t>(u)]) {
+            std::vector<int> component;
+            int v = -1;
+            do {
+                v = stack.top();
+                stack.pop();
+                onStack[static_cast<size_t>(v)] = false;
+                component.push_back(v);
+            } while (v != u);
+
+            std::sort(component.begin(), component.end());
+            components.push_back(component);
+        }
+    };
+
+    for (int vertex = 0; vertex < n; ++vertex) {
+        if (index[static_cast<size_t>(vertex)] == -1) {
+            dfs(vertex);
+        }
+    }
+
+    return components;
+}
+
+std::vector<int> DirectedGraph::componentIndexByVertex(
+    const std::vector<std::vector<int>>& components
+) const {
+    std::vector<int> componentOfVertex(static_cast<size_t>(vertexCount()), -1);
+
+    for (std::size_t componentIndex = 0; componentIndex < components.size(); ++componentIndex) {
+        for (int vertex : components[componentIndex]) {
+            if (!isValidVertex(vertex)) {
+                throw std::invalid_argument("Component contains invalid vertex.");
+            }
+            componentOfVertex[static_cast<size_t>(vertex)] =
+                static_cast<int>(componentIndex);
+        }
+    }
+
+    return componentOfVertex;
+}
+
+DirectedGraph DirectedGraph::buildCondensationGraph(
+    const std::vector<std::vector<int>>& components
+) const {
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    DirectedGraph condensation(static_cast<int>(components.size()));
+
+    for (int u = 0; u < vertexCount(); ++u) {
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        if (componentU == -1) {
+            throw std::invalid_argument("Missing component for vertex.");
+        }
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            const int componentV = componentOfVertex[static_cast<size_t>(v)];
+            if (componentV == -1) {
+                throw std::invalid_argument("Missing component for vertex.");
+            }
+            if (componentU != componentV) {
+                condensation.addEdge(componentU, componentV);
+            }
+        }
+    }
+
+    return condensation;
+}
+
+bool DirectedGraph::isDAG() const {
+    enum class VisitState {
+        Unvisited,
+        Visiting,
+        Done
+    };
+
+    std::vector<VisitState> state(
+        static_cast<size_t>(vertexCount()),
+        VisitState::Unvisited
+    );
+
+    std::function<bool(int)> hasCycleFrom = [&](int u) {
+        state[static_cast<size_t>(u)] = VisitState::Visiting;
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+        for (int v : neighbors) {
+            const VisitState neighborState = state[static_cast<size_t>(v)];
+            if (neighborState == VisitState::Visiting) {
+                return true;
+            }
+            if (neighborState == VisitState::Unvisited && hasCycleFrom(v)) {
+                return true;
+            }
+        }
+
+        state[static_cast<size_t>(u)] = VisitState::Done;
+        return false;
+    };
+
+    for (int vertex = 0; vertex < vertexCount(); ++vertex) {
+        if (state[static_cast<size_t>(vertex)] == VisitState::Unvisited) {
+            if (hasCycleFrom(vertex)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+DirectedGraph DirectedGraph::transitiveReductionDAG() const {
+    if (!isDAG()) {
+        throw std::invalid_argument("transitiveReductionDAG requires an acyclic graph.");
+    }
+
+    DirectedGraph reduced = *this;
+
+    for (int u = 0; u < vertexCount(); ++u) {
+        std::vector<bool> indirectReach(static_cast<size_t>(vertexCount()), false);
+        std::stack<int> stack;
+
+        const std::vector<int>& neighbors = adjacentTo(u);
+
+        // Passo 1: Inicia a busca a partir dos vizinhos diretos de 'u'
+        for (int v : neighbors) {
+            const std::vector<int>& v_neighbors = adjacentTo(v);
+            for (int w : v_neighbors) {
+                if (!indirectReach[static_cast<size_t>(w)]) {
+                    indirectReach[static_cast<size_t>(w)] = true;
+                    stack.push(w);
+                }
+            }
+        }
+
+        // Passo 2: Continua a DFS para mapear tudo que é alcanÃ§Ã¡vel indiretamente
+        while (!stack.empty()) {
+            int current = stack.top();
+            stack.pop();
+
+            for (int next : adjacentTo(current)) {
+                if (!indirectReach[static_cast<size_t>(next)]) {
+                    indirectReach[static_cast<size_t>(next)] = true;
+                    stack.push(next);
+                }
+            }
+        }
+
+        // Passo 3: Se um vizinho direto de 'u' foi alcanÃ§ado indiretamente, a aresta Ã© removida
+        for (int v : neighbors) {
+            if (indirectReach[static_cast<size_t>(v)]) {
+                reduced.removeEdge(u, v);
+            }
+        }
+    }
+
+    return reduced;
+}
+
+DirectedGraph DirectedGraph::optimizedReductionByCondensation() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced = *this;
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        const int componentV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (componentU == componentV) {
+            continue;
+        }
+
+        if (!reducedCondensation.hasEdge(componentU, componentV)) {
+            reduced.removeEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
+DirectedGraph DirectedGraph::optimizedReductionWithSccRings() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced(vertexCount());
+
+    for (const std::vector<int>& component : components) {
+        if (component.size() <= 1) {
+            continue;
+        }
+
+        for (std::size_t i = 0; i < component.size(); ++i) {
+            const int from = component[i];
+            const int to = component[(i + 1) % component.size()];
+            reduced.addEdge(from, to);
+        }
+    }
+
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int componentU = componentOfVertex[static_cast<size_t>(u)];
+        const int componentV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (componentU == componentV) {
+            continue;
+        }
+
+        if (reducedCondensation.hasEdge(componentU, componentV)) {
+            reduced.addEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
+// ---------------------------------------------------------------------------
+// Algoritmo 2.2: busca interna em SCCs usando apenas arestas originais
+// ---------------------------------------------------------------------------
+
+// DFS isolada que nao sai da componente fortemente conexa.
+bool DirectedGraph::isReachableIgnoringEdgeInSCC(int source, int target, int ignoreU, int ignoreV, const std::vector<int>& compOfVertex) const {
+    if (source == target) return true;
+
+    std::vector<bool> visited(static_cast<size_t>(vertexCount()), false);
+    std::stack<int> toVisit;
+    toVisit.push(source);
+    visited[static_cast<size_t>(source)] = true;
+    
+    int targetComp = compOfVertex[static_cast<size_t>(source)];
+
+    while (!toVisit.empty()) {
+        const int current = toVisit.top();
+        toVisit.pop();
+
+        for (int neighbor : adjacentTo(current)) {
+            // Mantem a busca restrita a componente do vertice de origem.
+            if (compOfVertex[static_cast<size_t>(neighbor)] != targetComp) {
+                continue; 
+            }
+            if (current == ignoreU && neighbor == ignoreV) {
+                continue;
+            }
+            if (neighbor == target) {
+                return true;
+            }
+
+            if (!visited[static_cast<size_t>(neighbor)]) {
+                visited[static_cast<size_t>(neighbor)] = true;
+                toVisit.push(neighbor);
+            }
+        }
+    }
+    return false;
+}
+
+// Variante que reduz tambem arestas internas das SCCs sem criar arestas artificiais.
+DirectedGraph DirectedGraph::optimizedReductionWithInternalSearch() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced = *this;
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int compU = componentOfVertex[static_cast<size_t>(u)];
+        const int compV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (compU != compV) {
+            // Trata arestas entre SCCs diferentes
+            if (!reducedCondensation.hasEdge(compU, compV)) {
+                reduced.removeEdge(u, v);
+            }
+        } else {
+            // Trata arestas internas sem permitir que a busca saia da SCC.
+            
+            if (reduced.isReachableIgnoringEdgeInSCC(u, v, u, v, componentOfVertex)) {
+                reduced.removeEdge(u, v);
+            }
+        }
+    }
+
+    return reduced;
+}
+
+// ---------------------------------------------------------------------------
+// Operacoes basicas de grafo direcionado
+// ---------------------------------------------------------------------------
+
 bool DirectedGraph::addEdge(int from, int to) {
     if (!isValidVertex(from) || !isValidVertex(to)) {
         return false;
@@ -213,3 +553,4 @@ bool DirectedGraph::hasEdge(int from, int to) const {
     const std::vector<int>& neighbors = adjacencyList_[from];
     return std::find(neighbors.begin(), neighbors.end(), to) != neighbors.end();
 }
+
