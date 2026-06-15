@@ -181,7 +181,7 @@ int DirectedGraph::removeRedundantEdgesUsingSnapshot() {
 }
 
 // ---------------------------------------------------------------------------
-// Algoritmo 2: base otimizada por SCCs (Tarjan) e DAG de condensacao
+// Algoritmo 2.2: base otimizada por SCCs (Tarjan) e DAG de condensacao
 // ---------------------------------------------------------------------------
 
 std::vector<std::vector<int>> DirectedGraph::stronglyConnectedComponents() const {
@@ -328,18 +328,42 @@ DirectedGraph DirectedGraph::transitiveReductionDAG() const {
     }
 
     DirectedGraph reduced = *this;
-    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
 
-    for (const std::pair<int, int>& edge : originalEdges) {
-        const int u = edge.first;
-        const int v = edge.second;
+    for (int u = 0; u < vertexCount(); ++u) {
+        std::vector<bool> indirectReach(static_cast<size_t>(vertexCount()), false);
+        std::stack<int> stack;
 
-        if (!reduced.hasEdge(u, v)) {
-            continue;
+        const std::vector<int>& neighbors = adjacentTo(u);
+
+        // Passo 1: Inicia a busca a partir dos vizinhos diretos de 'u'
+        for (int v : neighbors) {
+            const std::vector<int>& v_neighbors = adjacentTo(v);
+            for (int w : v_neighbors) {
+                if (!indirectReach[static_cast<size_t>(w)]) {
+                    indirectReach[static_cast<size_t>(w)] = true;
+                    stack.push(w);
+                }
+            }
         }
 
-        if (reduced.isReachableIgnoringEdge(u, v, u, v)) {
-            reduced.removeEdge(u, v);
+        // Passo 2: Continua a DFS para mapear tudo que é alcançável indiretamente
+        while (!stack.empty()) {
+            int current = stack.top();
+            stack.pop();
+
+            for (int next : adjacentTo(current)) {
+                if (!indirectReach[static_cast<size_t>(next)]) {
+                    indirectReach[static_cast<size_t>(next)] = true;
+                    stack.push(next);
+                }
+            }
+        }
+
+        // Passo 3: Se um vizinho direto de 'u' foi alcançado indiretamente, a aresta é removida
+        for (int v : neighbors) {
+            if (indirectReach[static_cast<size_t>(v)]) {
+                reduced.removeEdge(u, v);
+            }
         }
     }
 
@@ -406,6 +430,81 @@ DirectedGraph DirectedGraph::optimizedReductionWithSccRings() const {
 
         if (reducedCondensation.hasEdge(componentU, componentV)) {
             reduced.addEdge(u, v);
+        }
+    }
+
+    return reduced;
+}
+
+// ---------------------------------------------------------------------------
+// Algoritmo 2.1
+// ---------------------------------------------------------------------------
+
+// DFS isolada que não "vaza" para fora do componente strongly-connected
+bool DirectedGraph::isReachableIgnoringEdgeInSCC(int source, int target, int ignoreU, int ignoreV, const std::vector<int>& compOfVertex) const {
+    if (source == target) return true;
+
+    std::vector<bool> visited(static_cast<size_t>(vertexCount()), false);
+    std::stack<int> toVisit;
+    toVisit.push(source);
+    visited[static_cast<size_t>(source)] = true;
+    
+    int targetComp = compOfVertex[static_cast<size_t>(source)];
+
+    while (!toVisit.empty()) {
+        const int current = toVisit.top();
+        toVisit.pop();
+
+        for (int neighbor : adjacentTo(current)) {
+            // Regra crucial: Aborta se o vizinho estiver em outro componente (vazamento)
+            if (compOfVertex[static_cast<size_t>(neighbor)] != targetComp) {
+                continue; 
+            }
+            if (current == ignoreU && neighbor == ignoreV) {
+                continue;
+            }
+            if (neighbor == target) {
+                return true;
+            }
+
+            if (!visited[static_cast<size_t>(neighbor)]) {
+                visited[static_cast<size_t>(neighbor)] = true;
+                toVisit.push(neighbor);
+            }
+        }
+    }
+    return false;
+}
+
+// O novo algoritmo que substitui a criação artificial de anéis
+DirectedGraph DirectedGraph::optimizedReductionWithInternalSearch() const {
+    const std::vector<std::vector<int>> components = stronglyConnectedComponents();
+    const std::vector<int> componentOfVertex = componentIndexByVertex(components);
+    const DirectedGraph condensation = buildCondensationGraph(components);
+    
+    // Reduz as "rodovias intermunicipais" (DAG otimizado que fizemos acima)
+    const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+
+    DirectedGraph reduced = *this;
+    const std::vector<std::pair<int, int>> originalEdges = getEdgeListSnapshot();
+
+    for (const std::pair<int, int>& edge : originalEdges) {
+        const int u = edge.first;
+        const int v = edge.second;
+        const int compU = componentOfVertex[static_cast<size_t>(u)];
+        const int compV = componentOfVertex[static_cast<size_t>(v)];
+
+        if (compU != compV) {
+            // Trata arestas entre SCCs diferentes
+            if (!reducedCondensation.hasEdge(compU, compV)) {
+                reduced.removeEdge(u, v);
+            }
+        } else {
+            // Trata arestas DENTRO da mesma SCC (Heurística MEG)
+            // Usa a DFS blindada que não sai do componente
+            if (reduced.isReachableIgnoringEdgeInSCC(u, v, u, v, componentOfVertex)) {
+                reduced.removeEdge(u, v);
+            }
         }
     }
 
