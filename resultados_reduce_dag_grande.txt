@@ -301,7 +301,7 @@ Arestas (m): 1137
 297: 298 299
 298: 299
 299:
-Tempo de processamento: 0.337 ms
+Tempo de processamento: 0.333 ms
 Modo: reducao transitiva assumindo que a entrada ja e um DAG.
 Reducao transitiva do DAG:
 0: 1

@@ -301,7 +301,7 @@ Arestas (m): 924
 297: 298 299 272
 298: 299 270 273
 299: 270 271 274
-Tempo de processamento: 0.072 ms
+Tempo de processamento: 0.077 ms
 Grafo reduzido por condensacao (Conservador - Mantem SCCs intactas):
 0: 1 2 5
 1: 2 3 6

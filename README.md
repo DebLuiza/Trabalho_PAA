@@ -388,4 +388,6 @@ g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src
 ./grafo_app.exe dados/grandes/grafo_scc_grande.txt --reduce-optimized-rings | tee resultados_reduce_rings_grande.txt
 ```
 
+Para a comparacao principal, use `grafo_scc_grande.txt` em todas as implementacoes gerais. O `grafo_dag_grande.txt` deve ser usado apenas para `--reduce-dag`, pois esse modo exige grafo aciclico.
+
 Para comparar no relatorio, registre a linha `Tempo de processamento` de cada execucao.

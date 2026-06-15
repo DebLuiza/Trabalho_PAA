@@ -6,22 +6,32 @@ Os resultados abaixo foram obtidos a partir dos arquivos gerados pelo programa e
 
 Como os tempos podem variar entre execucoes, eles devem ser interpretados como uma comparacao preliminar. Para o relatorio final, o ideal e executar cada caso algumas vezes e usar a media.
 
+## Criterio de comparacao
+
+Para manter a comparacao justa, todas as implementacoes aplicaveis a grafos gerais foram avaliadas sobre a mesma instancia:
+
+`dados/grandes/grafo_scc_grande.txt`
+
+A unica excecao e `--reduce-dag`, pois esse modo exige que o grafo de entrada seja aciclico. Por isso, ele foi testado separadamente em:
+
+`dados/grandes/grafo_dag_grande.txt`
+
 ## Instancias usadas
 
 | Arquivo | Descricao | Vertices | Arestas iniciais |
 |---|---:|---:|---:|
-| `dados/grandes/grafo_dag_grande.txt` | DAG grande com arestas transitivas | 300 | 1137 |
 | `dados/grandes/grafo_scc_grande.txt` | Grafo com SCCs grandes e redundancias internas | 300 | 924 |
+| `dados/grandes/grafo_dag_grande.txt` | DAG usado apenas para validar `--reduce-dag` | 300 | 1137 |
 
 ## Resultados
 
 | Comando | Instancia | Tempo | Arestas finais | Observacao |
 |---|---|---:|---:|---|
-| `--reduce-dag` | `grafo_dag_grande.txt` | 0.337 ms | 299 | Reduziu o DAG de 1137 para 299 arestas. |
-| `--reduce` | `grafo_scc_grande.txt` | 0.645 ms | 339 | Baseline geral por DFS ignorando cada aresta. |
-| `--reduce-optimized-conservative` | `grafo_scc_grande.txt` | 0.072 ms | 909 | Removeu apenas redundancias entre SCCs; manteve SCCs internas intactas. |
-| `--reduce-internal-search` | `grafo_scc_grande.txt` | 0.415 ms | 339 | Resultado equivalente ao baseline, mas usando SCCs e busca interna restrita. |
-| `--reduce-optimized-rings` | `grafo_scc_grande.txt` | 0.073 ms | 309 | Menor numero de arestas, mas pode criar arestas artificiais dentro das SCCs. |
+| `--reduce` | `grafo_scc_grande.txt` | 0.637 ms | 339 | Baseline geral por DFS ignorando cada aresta. |
+| `--reduce-optimized-conservative` | `grafo_scc_grande.txt` | 0.077 ms | 909 | Removeu apenas redundancias entre SCCs; manteve SCCs internas intactas. |
+| `--reduce-internal-search` | `grafo_scc_grande.txt` | 0.329 ms | 339 | Resultado equivalente ao baseline, mas usando SCCs e busca interna restrita. |
+| `--reduce-optimized-rings` | `grafo_scc_grande.txt` | 0.069 ms | 309 | Menor numero de arestas, mas pode criar arestas artificiais dentro das SCCs. |
+| `--reduce-dag` | `grafo_dag_grande.txt` | 0.333 ms | 299 | Teste separado, pois o modo exige entrada aciclica. |
 
 ## Leitura dos resultados
 

@@ -301,7 +301,7 @@ Arestas (m): 924
 297: 298 299 272
 298: 299 270 273
 299: 270 271 274
-Tempo de processamento: 0.415 ms
+Tempo de processamento: 0.329 ms
 Grafo reduzido com busca interna (Heuristica MEG para subgrafos):
 0: 5
 1: 6
