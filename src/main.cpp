@@ -1,5 +1,6 @@
 #include "directed_graph.h"
 
+#include <chrono>
 #include <cstddef>
 #include <exception>
 #include <iostream>
@@ -15,6 +16,12 @@ int main(int argc, char* argv[]) {
     try {
         const std::string filePath = argv[1];
         DirectedGraph graph = DirectedGraph::fromFile(filePath);
+        const auto printElapsed = [](const std::chrono::steady_clock::time_point& start) {
+            const auto end = std::chrono::steady_clock::now();
+            const auto elapsed =
+                std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "Tempo de processamento: " << elapsed.count() / 1000.0 << " ms\n";
+        };
 
         std::cout << "Arquivo lido com sucesso: " << filePath << '\n';
         std::cout << "Vertices (n): " << graph.vertexCount() << '\n';
@@ -25,7 +32,9 @@ int main(int argc, char* argv[]) {
             const std::string option = argv[2];
             
             if (option == "--scc") {
+                const auto start = std::chrono::steady_clock::now();
                 const auto components = graph.stronglyConnectedComponents();
+                printElapsed(start);
                 std::cout << "Componentes fortemente conexas: " << components.size() << '\n';
                 for (std::size_t i = 0; i < components.size(); ++i) {
                     std::cout << "C" << i << ":";
@@ -36,8 +45,10 @@ int main(int argc, char* argv[]) {
                 }
             } 
             else if (option == "--condensation") {
+                const auto start = std::chrono::steady_clock::now();
                 const auto components = graph.stronglyConnectedComponents();
                 const DirectedGraph condensation = graph.buildCondensationGraph(components);
+                printElapsed(start);
 
                 std::cout << "Componentes fortemente conexas: " << components.size() << '\n';
                 for (std::size_t i = 0; i < components.size(); ++i) {
@@ -59,15 +70,19 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
 
+                const auto start = std::chrono::steady_clock::now();
                 const DirectedGraph reduced = graph.transitiveReductionDAG();
+                printElapsed(start);
                 std::cout << "Modo: reducao transitiva assumindo que a entrada ja e um DAG.\n";
                 std::cout << "Reducao transitiva do DAG:\n";
                 reduced.printAdjacencyList(std::cout);
             } 
             else if (option == "--reduce-condensation") {
+                const auto start = std::chrono::steady_clock::now();
                 const auto components = graph.stronglyConnectedComponents();
                 const DirectedGraph condensation = graph.buildCondensationGraph(components);
                 const DirectedGraph reducedCondensation = condensation.transitiveReductionDAG();
+                printElapsed(start);
 
                 std::cout << "Grafo de condensacao:\n";
                 condensation.printAdjacencyList(std::cout);
@@ -75,22 +90,30 @@ int main(int argc, char* argv[]) {
                 reducedCondensation.printAdjacencyList(std::cout);
             } 
             else if (option == "--reduce-optimized-conservative" || option == "--reduce-optimized") {
+                const auto start = std::chrono::steady_clock::now();
                 const DirectedGraph reduced = graph.optimizedReductionByCondensation();
+                printElapsed(start);
                 std::cout << "Grafo reduzido por condensacao (Conservador - Mantem SCCs intactas):\n";
                 reduced.printAdjacencyList(std::cout);
             } 
             else if (option == "--reduce-internal-search") {
+                const auto start = std::chrono::steady_clock::now();
                 const DirectedGraph reduced = graph.optimizedReductionWithInternalSearch();
+                printElapsed(start);
                 std::cout << "Grafo reduzido com busca interna (Heuristica MEG para subgrafos):\n";
                 reduced.printAdjacencyList(std::cout);
             }
             else if (option == "--reduce-optimized-rings") {
+                const auto start = std::chrono::steady_clock::now();
                 const DirectedGraph reduced = graph.optimizedReductionWithSccRings();
+                printElapsed(start);
                 std::cout << "Grafo reduzido por condensacao com construcao de aneis nas SCCs:\n";
                 reduced.printAdjacencyList(std::cout);
             } 
             else if (option == "--reduce") {
+                const auto start = std::chrono::steady_clock::now();
                 const int removed = graph.removeRedundantEdgesUsingSnapshot();
+                printElapsed(start);
                 std::cout << "Modo: baseline geral por DFS ignorando cada aresta do grafo original.\n";
                 std::cout << "Arestas redundantes removidas: " << removed << '\n';
                 std::cout << "Grafo apos reducao:\n";
@@ -104,7 +127,9 @@ int main(int argc, char* argv[]) {
         else if (argc == 4) {
             const int source = std::stoi(argv[2]);
             const int target = std::stoi(argv[3]);
+            const auto start = std::chrono::steady_clock::now();
             const bool reachable = graph.isReachable(source, target);
+            printElapsed(start);
             std::cout << "Existe caminho de " << source << " ate " << target << "? "
                       << (reachable ? "true" : "false") << '\n';
         } 
@@ -114,8 +139,10 @@ int main(int argc, char* argv[]) {
             const int ignoreU = std::stoi(argv[4]);
             const int ignoreV = std::stoi(argv[5]);
 
+            const auto start = std::chrono::steady_clock::now();
             const bool reachableIgnoringEdge =
                 graph.isReachableIgnoringEdge(source, target, ignoreU, ignoreV);
+            printElapsed(start);
             std::cout << "Existe caminho de " << source << " ate " << target
                       << " ignorando " << ignoreU << "->" << ignoreV << "? "
                       << (reachableIgnoringEdge ? "true" : "false") << '\n';

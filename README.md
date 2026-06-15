@@ -46,6 +46,8 @@ Foram adicionados exemplos em:
 - `dados/pequenos/grafo1.txt`
 - `dados/medios/grafo1.txt`
 - `dados/grandes/grafo1.txt`
+- `dados/grandes/grafo_dag_grande.txt`
+- `dados/grandes/grafo_scc_grande.txt`
 
 ## Executando teste rapido
 
@@ -365,3 +367,25 @@ Saida esperada:
 1: 2
 2: 0
 ```
+
+## Testes grandes e tempo de execucao
+
+O programa imprime `Tempo de processamento` para os modos de consulta/reducao. Esse tempo mede o processamento do algoritmo selecionado, antes da impressao do grafo resultante.
+
+Foram adicionados dois grafos grandes:
+
+- `dados/grandes/grafo_dag_grande.txt`: DAG com 300 vertices e 1137 arestas.
+- `dados/grandes/grafo_scc_grande.txt`: grafo com 300 vertices, 924 arestas e SCCs grandes com redundancias internas.
+
+Comandos sugeridos no Git Bash:
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o grafo_app.exe src/main.cpp src/graph.cpp src/directed_graph.cpp
+./grafo_app.exe dados/grandes/grafo_dag_grande.txt --reduce-dag | tee resultados_reduce_dag_grande.txt
+./grafo_app.exe dados/grandes/grafo_scc_grande.txt --reduce | tee resultados_reduce_baseline_grande.txt
+./grafo_app.exe dados/grandes/grafo_scc_grande.txt --reduce-optimized-conservative | tee resultados_reduce_conservative_grande.txt
+./grafo_app.exe dados/grandes/grafo_scc_grande.txt --reduce-internal-search | tee resultados_reduce_internal_search_grande.txt
+./grafo_app.exe dados/grandes/grafo_scc_grande.txt --reduce-optimized-rings | tee resultados_reduce_rings_grande.txt
+```
+
+Para comparar no relatorio, registre a linha `Tempo de processamento` de cada execucao.
